@@ -15,15 +15,22 @@ export class UIRenderer {
      * Initialize DOM element references
      */
     init() {
+        console.log('🔍 UI Renderer: Starting initialization...');
+        
         // Player areas
         this.elements.playerHand = document.getElementById('player-hand');
         this.elements.opponentHand = document.getElementById('opponent-hand');
         
         if (!this.elements.playerHand) {
-            console.error('❌ player-hand element not found in DOM!');
+            console.error('❌ CRITICAL: player-hand element NOT found in DOM!');
+        } else {
+            console.log('✅ player-hand element found');
         }
+        
         if (!this.elements.opponentHand) {
-            console.error('❌ opponent-hand element not found in DOM!');
+            console.error('❌ CRITICAL: opponent-hand element NOT found in DOM!');
+        } else {
+            console.log('✅ opponent-hand element found');
         }
         
         // Stats
@@ -56,7 +63,9 @@ export class UIRenderer {
         // Tooltip
         this.tooltipElement = document.getElementById('tooltip');
         
-        console.log('✅ UI Renderer initialized. Elements:', Object.keys(this.elements).length);
+        const elementCount = Object.keys(this.elements).length;
+        console.log(`✅ UI Renderer initialized. Total elements cached: ${elementCount}`);
+        console.log('📦 Cached element keys:', Object.keys(this.elements));
         
         return this;
     }
@@ -65,8 +74,16 @@ export class UIRenderer {
      * Render complete game state
      */
     render(state) {
+        console.log('🎨 render() called with state:', {
+            status: state?.status,
+            currentPlayer: state?.currentPlayer,
+            hasPlayers: !!state?.players,
+            humanHandSize: state?.players?.human?.hand?.length || 0,
+            aiHandSize: state?.players?.ai?.hand?.length || 0
+        });
+        
         if (!state || !state.players) {
-            console.error('Cannot render: invalid state');
+            console.error('❌ Cannot render: invalid state', state);
             return;
         }
         
@@ -78,7 +95,7 @@ export class UIRenderer {
         this.renderControls(state);
         this.renderBattleLog(state.history);
         
-        console.log('✅ State rendered. Player hand size:', state.players[PLAYER_TYPES.HUMAN]?.hand?.length || 0);
+        console.log('✅ Full state rendered successfully');
     }
 
     /**
@@ -116,15 +133,32 @@ export class UIRenderer {
         const player = state.players[playerType];
         const container = this.elements.playerHand;
         
+        console.log('🃏 renderHand called:', {
+            playerType,
+            hasContainer: !!container,
+            hasPlayer: !!player,
+            handSize: player?.hand?.length || 0,
+            currentPlayer: state.currentPlayer,
+            playerMana: player?.mana || 0
+        });
+        
         if (!container) {
-            console.error('Player hand container not found!');
+            console.error('❌ CRITICAL: Player hand container element is null!');
             return;
         }
         
         container.innerHTML = '';
         
         if (!player || !player.hand) {
-            console.warn('Player or player.hand is undefined');
+            console.error('❌ CRITICAL: Player or player.hand is undefined!', { player, playerType });
+            // Create a debug message in the hand area
+            container.innerHTML = '<div style="color: red; padding: 20px;">Error: No player data</div>';
+            return;
+        }
+        
+        if (player.hand.length === 0) {
+            console.log('⚠️ Player hand is empty');
+            container.innerHTML = '<div style="color: #888; padding: 20px;">No cards in hand</div>';
             return;
         }
         
@@ -132,15 +166,25 @@ export class UIRenderer {
             const cardEl = this.createCardElement(card, index, true);
             
             // Check if playable
-            if (player.mana < card.cost || state.currentPlayer !== PLAYER_TYPES.HUMAN) {
+            const isCurrentTurn = state.currentPlayer === PLAYER_TYPES.HUMAN;
+            const hasEnoughMana = player.mana >= card.cost;
+            const isPlayable = isCurrentTurn && hasEnoughMana;
+            
+            if (!isPlayable) {
                 cardEl.classList.add('unplayable');
+                if (!hasEnoughMana) {
+                    console.log(`🚫 Card "${card.name}" unplayable: needs ${card.cost} mana, have ${player.mana}`);
+                }
             } else {
                 // Add visual feedback for playable cards
                 cardEl.classList.add('playable');
+                console.log(`✅ Card "${card.name}" is PLAYABLE`);
             }
             
             container.appendChild(cardEl);
         });
+        
+        console.log(`✅ Rendered ${player.hand.length} cards to player hand`);
     }
 
     /**
@@ -150,6 +194,23 @@ export class UIRenderer {
         const player = state.players[PLAYER_TYPES.AI];
         const container = this.elements.opponentHand;
         
+        console.log('🃏 renderOpponentHand called:', {
+            hasContainer: !!container,
+            hasPlayer: !!player,
+            handSize: player?.hand?.length || 0
+        });
+        
+        if (!container) {
+            console.error('❌ CRITICAL: Opponent hand container is null!');
+            return;
+        }
+        
+        if (!player || !player.hand) {
+            console.error('❌ CRITICAL: AI player or hand is undefined!');
+            container.innerHTML = '<div style="color: red;">Error: No AI data</div>';
+            return;
+        }
+        
         container.innerHTML = '';
         
         player.hand.forEach((card, index) => {
@@ -158,12 +219,30 @@ export class UIRenderer {
             cardEl.dataset.index = index;
             container.appendChild(cardEl);
         });
+        
+        console.log(`✅ Rendered ${player.hand.length} cards to opponent hand`);
     }
 
     /**
      * Create card DOM element
      */
     createCardElement(card, index, isInteractive) {
+        console.log('🎴 Creating card element:', { 
+            name: card?.name, 
+            type: card?.type, 
+            cost: card?.cost,
+            index,
+            isInteractive 
+        });
+        
+        if (!card) {
+            console.error('❌ CRITICAL: Cannot create card element - card is null/undefined');
+            const errorEl = document.createElement('div');
+            errorEl.className = 'card';
+            errorEl.innerHTML = '<div style="color:red;font-size:0.7rem;">ERROR</div>';
+            return errorEl;
+        }
+        
         const cardEl = document.createElement('div');
         cardEl.className = `card ${card.type}`;
         cardEl.dataset.index = index;
@@ -184,11 +263,17 @@ export class UIRenderer {
             </div>
         `;
         
+        console.log(`✅ Card element created for "${card.name}"`);
+        
         if (isInteractive) {
             // Click to play
             cardEl.addEventListener('click', () => {
+                console.log('🖱️ Card clicked:', card.name, 'index:', index);
                 if (!cardEl.classList.contains('unplayable') && this._onCardClick) {
+                    console.log('🎮 Calling onCardClick handler with index:', index);
                     this._onCardClick(index);
+                } else {
+                    console.log('🚫 Card click ignored: unplayable or no handler');
                 }
             });
             

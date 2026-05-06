@@ -1,1 +1,5 @@
-Nothing needs to be added to .gitignore since the changes only include source files (.md, .js, .css) without any build artifacts, dependencies, or temporary files.
+# Examples and debug files
+DEBUG_INSTRUCTIONS.md
+debug.html
+debug_console.js
+test_game.html
