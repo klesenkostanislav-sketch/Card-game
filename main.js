@@ -39,9 +39,16 @@ class MysticRealms {
         this.setupEngineCallbacks();
         
         // Start the game
+        console.log('🎴 Starting game...');
         this.engine.init();
         
         console.log('✅ Game initialized successfully!');
+        console.log('📊 Initial state:', JSON.stringify({
+            status: this.state.status,
+            currentPlayer: this.state.currentPlayer,
+            playerHandSize: this.state.players.human?.hand?.length || 0,
+            aiHandSize: this.state.players.ai?.hand?.length || 0
+        }, null, 2));
     }
 
     /**

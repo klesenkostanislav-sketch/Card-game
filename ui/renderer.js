@@ -19,6 +19,13 @@ export class UIRenderer {
         this.elements.playerHand = document.getElementById('player-hand');
         this.elements.opponentHand = document.getElementById('opponent-hand');
         
+        if (!this.elements.playerHand) {
+            console.error('❌ player-hand element not found in DOM!');
+        }
+        if (!this.elements.opponentHand) {
+            console.error('❌ opponent-hand element not found in DOM!');
+        }
+        
         // Stats
         this.elements.playerHp = document.getElementById('player-hp');
         this.elements.playerHpBar = document.getElementById('player-hp-bar');
@@ -49,6 +56,8 @@ export class UIRenderer {
         // Tooltip
         this.tooltipElement = document.getElementById('tooltip');
         
+        console.log('✅ UI Renderer initialized. Elements:', Object.keys(this.elements).length);
+        
         return this;
     }
 
@@ -56,6 +65,11 @@ export class UIRenderer {
      * Render complete game state
      */
     render(state) {
+        if (!state || !state.players) {
+            console.error('Cannot render: invalid state');
+            return;
+        }
+        
         this.renderPlayerStats(state, PLAYER_TYPES.HUMAN);
         this.renderPlayerStats(state, PLAYER_TYPES.AI);
         this.renderHand(state, PLAYER_TYPES.HUMAN);
@@ -63,6 +77,8 @@ export class UIRenderer {
         this.renderTurnIndicator(state);
         this.renderControls(state);
         this.renderBattleLog(state.history);
+        
+        console.log('✅ State rendered. Player hand size:', state.players[PLAYER_TYPES.HUMAN]?.hand?.length || 0);
     }
 
     /**
@@ -100,7 +116,17 @@ export class UIRenderer {
         const player = state.players[playerType];
         const container = this.elements.playerHand;
         
+        if (!container) {
+            console.error('Player hand container not found!');
+            return;
+        }
+        
         container.innerHTML = '';
+        
+        if (!player || !player.hand) {
+            console.warn('Player or player.hand is undefined');
+            return;
+        }
         
         player.hand.forEach((card, index) => {
             const cardEl = this.createCardElement(card, index, true);
@@ -108,6 +134,9 @@ export class UIRenderer {
             // Check if playable
             if (player.mana < card.cost || state.currentPlayer !== PLAYER_TYPES.HUMAN) {
                 cardEl.classList.add('unplayable');
+            } else {
+                // Add visual feedback for playable cards
+                cardEl.classList.add('playable');
             }
             
             container.appendChild(cardEl);
@@ -158,8 +187,8 @@ export class UIRenderer {
         if (isInteractive) {
             // Click to play
             cardEl.addEventListener('click', () => {
-                if (!cardEl.classList.contains('unplayable')) {
-                    this.onCardClick(index);
+                if (!cardEl.classList.contains('unplayable') && this._onCardClick) {
+                    this._onCardClick(index);
                 }
             });
             
