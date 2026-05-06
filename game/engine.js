@@ -31,7 +31,14 @@ export class GameEngine {
      * Initialize the game
      */
     init() {
+        console.log('🎴 Game Engine: Initializing...');
         startGame(this.state);
+        console.log('✅ Game Engine: Game started, state:', {
+            status: this.state.status,
+            currentPlayer: this.state.currentPlayer,
+            humanHandSize: this.state.players.human?.hand?.length || 0,
+            aiHandSize: this.state.players.ai?.hand?.length || 0
+        });
         this.notifyStateChanged();
         return this.state;
     }
@@ -49,8 +56,12 @@ export class GameEngine {
      * Notify listeners of state change
      */
     notifyStateChanged() {
+        console.log('📢 Game Engine: Notifying state change...');
         if (this.callbacks.onStateChanged) {
+            console.log('📡 Calling onStateChanged callback');
             this.callbacks.onStateChanged(this.state);
+        } else {
+            console.warn('⚠️ No onStateChanged callback registered!');
         }
     }
 
