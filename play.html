@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystic Realms - Card Battle</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16213e;
+            --card-bg: #0f3460;
+            --text-color: #e94560;
+            --highlight: #ffd700;
+            --mana-color: #4da6ff;
+            --hp-color: #ff4d4d;
+            --card-width: 140px;
+            --card-height: 200px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .top-area, .bottom-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .middle-area {
+            height: 160px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        /* Stats Bars */
+        .stats-panel {
+            width: 200px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            text-align: center;
+        }
+
+        .stat-row {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .bar-container {
+            width: 100px;
+            height: 12px;
+            background: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-left: 10px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .hp-fill { background: var(--hp-color); }
+        .mana-fill { background: var(--mana-color); }
+
+        /* Cards */
+        .hand-container {
+            display: flex;
+            gap: 10px;
+            height: var(--card-height);
+            align-items: center;
+            padding: 10px;
+            min-width: 300px;
+        }
+
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background: linear-gradient(135deg, var(--card-bg), #1a1a2e);
+            border: 2px solid #444;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            font-size: 0.85rem;
+            color: #eee;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.05);
+            z-index: 100;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-color: var(--highlight);
+        }
+
+        .card.playable:hover {
+            box-shadow: 0 0 15px var(--mana-color);
+            border-color: #00ff00;
+        }
+
+        .card.unplayable {
+            opacity: 0.6;
+            filter: grayscale(0.8);
+            cursor: not-allowed;
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 3px;
+        }
+
+        .card-image {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .stat-atk { color: #ff6b6b; }
+        .stat-def { color: #4ecdc4; }
+
+        .card-cost {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: var(--mana-color);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .card-desc {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #aaa;
+            margin-top: 5px;
+            line-height: 1.2;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            background: var(--text-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        button:hover { background: #ff6b8a; }
+        button:disabled { background: #555; cursor: not-allowed; }
+
+        .turn-indicator {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--highlight);
+            text-shadow: 0 0 5px var(--highlight);
+        }
+
+        /* Battle Log */
+        .battle-log {
+            width: 250px;
+            height: 140px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #444;
+            border-radius: 5px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+        .log-player { color: #4da6ff; }
+        .log-enemy { color: #ff4d4d; }
+        .log-system { color: #ffd700; }
+
+        /* Tooltip */
+        #tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--highlight);
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            max-width: 200px;
+            font-size: 0.9rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid var(--highlight);
+            max-width: 400px;
+        }
+
+        .modal-title { font-size: 2rem; margin-bottom: 20px; color: var(--highlight); }
+        .modal-btn { margin-top: 20px; }
+
+        /* Card Types Colors */
+        .type-spell { border-color: #a29bfe; }
+        .type-monster { border-color: #ff7675; }
+        .type-item { border-color: #ffeaa7; }
+        .type-ability { border-color: #55efc4; }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <!-- Opponent Area -->
+        <div class="top-area">
+            <div class="stats-panel">
+                <h3>Opponent (AI)</h3>
+                <div class="stat-row">
+                    <span>HP: <span id="opponent-hp-val">20</span></span>
+                    <div class="bar-container"><div id="opponent-hp-bar" class="bar-fill hp-fill" style="width: 100%"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>Mana: <span id="opponent-mana-val">0</span></span>
+                    <div class="bar-container"><div id="opponent-mana-bar" class="bar-fill mana-fill" style="width: 0%"></div></div>
+                </div>
+                <div style="margin-top:10px; font-size:0.9rem; color:#aaa;">Deck: <span id="opponent-deck-val">20</span></div>
+            </div>
+            <div class="hand-container" id="opponent-hand">
+                <!-- Opponent cards (backside) -->
+            </div>
+        </div>
+
+        <!-- Middle Area: Log & Controls -->
+        <div class="middle-area">
+            <div class="battle-log" id="battle-log">
+                <div class="log-entry log-system">Game Started!</div>
+            </div>
+            
+            <div class="controls">
+                <div class="turn-indicator" id="turn-indicator">Your Turn</div>
+                <button id="end-turn-btn">End Turn</button>
+            </div>
+
+            <div class="stats-panel">
+                <h3>You</h3>
+                <div class="stat-row">
+                    <span>HP: <span id="player-hp-val">20</span></span>
+                    <div class="bar-container"><div id="player-hp-bar" class="bar-fill hp-fill" style="width: 100%"></div></div>
+                </div>
+                <div class="stat-row">
+                    <span>Mana: <span id="player-mana-val">0/0</span></span>
+                    <div class="bar-container"><div id="player-mana-bar" class="bar-fill mana-fill" style="width: 0%"></div></div>
+                </div>
+                <div style="margin-top:10px; font-size:0.9rem; color:#aaa;">Deck: <span id="player-deck-val">20</span></div>
+            </div>
+        </div>
+
+        <!-- Player Area -->
+        <div class="bottom-area">
+            <div class="hand-container" id="player-hand">
+                <!-- Player cards will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- Game Over Modal -->
+    <div class="modal-overlay" id="game-over-modal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="modal-title">Victory!</h2>
+            <p id="modal-message">You defeated the opponent.</p>
+            <button class="modal-btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // DATA: CARDS
+        // ==========================================
+        const CARD_DATA = [
+            // Spells
+            { id: 's1', name: 'Arcane Bolt', type: 'spell', cost: 2, effect: 'damage', value: 3, desc: 'Deal 3 damage' },
+            { id: 's2', name: 'Fireball', type: 'spell', cost: 4, effect: 'damage', value: 6, desc: 'Deal 6 damage' },
+            { id: 's3', name: 'Healing Light', type: 'spell', cost: 3, effect: 'heal', value: 5, desc: 'Heal 5 HP' },
+            { id: 's4', name: 'Lightning Strike', type: 'spell', cost: 5, effect: 'damage', value: 8, desc: 'Deal 8 damage' },
+            { id: 's5', name: 'Mind Drain', type: 'spell', cost: 2, effect: 'draw', value: 1, desc: 'Draw 1 card' },
+            { id: 's6', name: 'Shield of Faith', type: 'spell', cost: 2, effect: 'buff_def', value: 3, desc: '+3 Def next turn' },
+            
+            // Monsters
+            { id: 'm1', name: 'Goblin Raider', type: 'monster', cost: 1, attack: 2, defense: 1, desc: '2/1 Weakling' },
+            { id: 'm2', name: 'Orc Warrior', type: 'monster', cost: 3, attack: 4, defense: 3, desc: '4/3 Strong' },
+            { id: 'm3', name: 'Dark Knight', type: 'monster', cost: 5, attack: 6, defense: 5, desc: '6/5 Veteran' },
+            { id: 'm4', name: 'Dragon Whelp', type: 'monster', cost: 4, attack: 5, defense: 4, desc: '5/4 Fiery' },
+            { id: 'm5', name: 'Skeleton Archer', type: 'monster', cost: 2, attack: 3, defense: 1, desc: '3/1 Ranged' },
+            { id: 'm6', name: 'Stone Golem', type: 'monster', cost: 6, attack: 7, defense: 8, desc: '7/8 Tank' },
+            
+            // Items
+            { id: 'i1', name: 'Health Potion', type: 'item', cost: 1, effect: 'heal', value: 3, desc: 'Heal 3 HP' },
+            { id: 'i2', name: 'Steel Sword', type: 'item', cost: 3, effect: 'buff_atk', value: 3, desc: '+3 Atk permanently' },
+            { id: 'i3', name: 'Chain Mail', type: 'item', cost: 2, effect: 'buff_def', value: 2, desc: '+2 Def permanently' },
+            { id: 'i4', name: 'Mana Crystal', type: 'item', cost: 0, effect: 'mana', value: 2, desc: 'Gain 2 Mana' },
+            
+            // Abilities
+            { id: 'a1', name: 'Power Strike', type: 'ability', cost: 1, effect: 'damage', value: 2, desc: 'Quick 2 dmg' },
+            { id: 'a2', name: 'Battle Cry', type: 'ability', cost: 2, effect: 'buff_atk', value: 2, desc: '+2 Atk all monsters' },
+            { id: 'a3', name: 'Meditate', type: 'ability', cost: 0, effect: 'draw', value: 2, desc: 'Draw 2 cards' },
+            { id: 'a4', name: 'Taunt', type: 'ability', cost: 1, effect: 'taunt', value: 0, desc: 'Force enemy attack' },
+            { id: 'a5', name: 'Assassinate', type: 'ability', cost: 6, effect: 'kill', value: 0, desc: 'Destroy minion' },
+            { id: 'a6', name: 'Resurrect', type: 'ability', cost: 4, effect: 'revive', value: 0, desc: 'Bring back monster' }
+        ];
+
+        // ==========================================
+        // GAME STATE
+        // ==========================================
+        class GameState {
+            constructor() {
+                this.player = this.createPlayer();
+                this.opponent = this.createPlayer();
+                this.turn = 'player'; // 'player' or 'opponent'
+                this.turnCount = 1;
+                this.gameOver = false;
+                this.board = { player: [], opponent: [] }; // Monsters on board
+                this.buffs = { player: { atk: 0, def: 0 }, opponent: { atk: 0, def: 0 } };
+            }
+
+            createPlayer() {
+                const deck = this.generateDeck();
+                return {
+                    hp: 20,
+                    maxHp: 20,
+                    mana: 0,
+                    maxMana: 0,
+                    deck: deck,
+                    hand: [],
+                    graveyard: []
+                };
+            }
+
+            generateDeck() {
+                let deck = [];
+                for (let i = 0; i < 20; i++) {
+                    const randomCard = CARD_DATA[Math.floor(Math.random() * CARD_DATA.length)];
+                    // Clone object to avoid reference issues
+                    deck.push({ ...randomCard, uid: Math.random().toString(36).substr(2, 9) });
+                }
+                return deck;
+            }
+
+            drawCard(who) {
+                const actor = who === 'player' ? this.player : this.opponent;
+                if (actor.deck.length > 0 && actor.hand.length < 7) {
+                    actor.hand.push(actor.deck.pop());
+                    return true;
+                }
+                return false;
+            }
+
+            startTurn(who) {
+                const actor = who === 'player' ? this.player : this.opponent;
+                if (actor.maxMana < 10) actor.maxMana++;
+                actor.mana = actor.maxMana;
+                this.drawCard(who);
+                
+                // Reset temporary buffs? (Optional, keeping simple for now)
+            }
+        }
+
+        // ==========================================
+        // GAME ENGINE
+        // ==========================================
+        class GameEngine {
+            constructor(state, ui) {
+                this.state = state;
+                this.ui = ui;
+                this.isProcessing = false;
+            }
+
+            init() {
+                // Initial draw (4 cards)
+                for(let i=0; i<4; i++) {
+                    this.state.drawCard('player');
+                    this.state.drawCard('opponent');
+                }
+                this.state.startTurn('player');
+                this.ui.render();
+                this.log("Game Started! Your turn.");
+            }
+
+            playCard(cardIndex) {
+                if (this.state.turn !== 'player' || this.isProcessing) return;
+                
+                const card = this.state.player.hand[cardIndex];
+                if (!card) return;
+
+                if (this.state.player.mana < card.cost) {
+                    this.log("Not enough mana!", "system");
+                    return;
+                }
+
+                // Pay cost
+                this.state.player.mana -= card.cost;
+                this.state.player.hand.splice(cardIndex, 1);
+
+                // Execute Effect
+                this.resolveEffect(card, 'player');
+                
+                this.ui.render();
+                this.checkWinCondition();
+            }
+
+            resolveEffect(card, who) {
+                const actor = who === 'player' ? this.state.player : this.state.opponent;
+                const target = who === 'player' ? this.state.opponent : this.state.player;
+                const logPrefix = who === 'player' ? "You" : "Opponent";
+
+                this.log(`${logPrefix} played ${card.name}`);
+
+                switch(card.effect) {
+                    case 'damage':
+                        target.hp = Math.max(0, target.hp - card.value);
+                        this.log(`${card.name} deals ${card.value} damage!`, who);
+                        break;
+                    case 'heal':
+                        actor.hp = Math.min(actor.maxHp, actor.hp + card.value);
+                        this.log(`${card.name} heals ${card.value} HP`, who);
+                        break;
+                    case 'draw':
+                        for(let i=0; i<card.value; i++) this.state.drawCard(who);
+                        this.log(`${card.name} draws ${card.value} cards`, who);
+                        break;
+                    case 'buff_atk':
+                        this.state.buffs[who].atk += card.value;
+                        this.log(`${card.name} boosts Attack by ${card.value}`, who);
+                        break;
+                    case 'buff_def':
+                        this.state.buffs[who].def += card.value;
+                        this.log(`${card.name} boosts Defense by ${card.value}`, who);
+                        break;
+                    case 'mana':
+                        actor.mana = Math.min(actor.maxMana, actor.mana + card.value);
+                        this.log(`${card.name} restores ${card.value} Mana`, who);
+                        break;
+                    case 'kill':
+                        // Simplified: destroy random enemy monster
+                        if(this.state.board.opponent.length > 0) {
+                            this.state.board.opponent.pop();
+                            this.log(`${card.name} destroys an enemy monster`, who);
+                        }
+                        break;
+                }
+
+                // If Monster, summon to board
+                if (card.type === 'monster') {
+                    this.state.board[who].push({
+                        ...card,
+                        currentHp: card.defense, // Use defense as HP for monsters
+                        canAttack: false // Summoning sickness
+                    });
+                    this.log(`${card.name} summoned!`, who);
+                }
+            }
+
+            endTurn() {
+                if (this.state.turn !== 'player' || this.isProcessing) return;
+                
+                this.state.turn = 'opponent';
+                this.ui.render();
+                this.log("--- Opponent's Turn ---", "system");
+                
+                setTimeout(() => this.aiTurn(), 1000);
+            }
+
+            aiTurn() {
+                if (this.state.gameOver) return;
+
+                this.state.startTurn('opponent');
+                this.ui.render();
+
+                // Simple AI Logic
+                setTimeout(() => {
+                    const ai = this.state.opponent;
+                    let played = false;
+
+                    // Try to play cards
+                    // Sort hand by cost descending to play big cards first
+                    const playableCards = ai.hand
+                        .map((card, index) => ({ card, index }))
+                        .filter(item => item.card.cost <= ai.mana)
+                        .sort((a, b) => b.card.cost - a.card.cost);
+
+                    if (playableCards.length > 0) {
+                        // Pick best card (simplified: highest cost affordable)
+                        const choice = playableCards[0];
+                        const card = choice.card;
+                        
+                        ai.mana -= card.cost;
+                        ai.hand.splice(choice.index, 1);
+                        this.resolveEffect(card, 'opponent');
+                        played = true;
+                    } else {
+                        this.log("Opponent has no moves.", "system");
+                    }
+
+                    this.ui.render();
+                    this.checkWinCondition();
+
+                    if (!this.state.gameOver) {
+                        setTimeout(() => {
+                            this.state.turn = 'player';
+                            this.state.startTurn('player');
+                            this.log("--- Your Turn ---", "system");
+                            this.ui.render();
+                        }, 1000);
+                    }
+                }, 1000);
+            }
+
+            checkWinCondition() {
+                if (this.state.player.hp <= 0) {
+                    this.endGame(false);
+                } else if (this.state.opponent.hp <= 0) {
+                    this.endGame(true);
+                }
+            }
+
+            endGame(playerWon) {
+                this.state.gameOver = true;
+                this.ui.showGameOver(playerWon);
+            }
+
+            log(msg, type = "neutral") {
+                this.ui.addLog(msg, type);
+            }
+        }
+
+        // ==========================================
+        // UI RENDERER
+        // ==========================================
+        class UIRenderer {
+            constructor(game) {
+                this.game = game;
+                this.elements = {};
+                this.initElements();
+            }
+
+            initElements() {
+                const ids = [
+                    'player-hand', 'opponent-hand', 
+                    'player-hp-val', 'player-hp-bar', 'player-mana-val', 'player-mana-bar', 'player-deck-val',
+                    'opponent-hp-val', 'opponent-hp-bar', 'opponent-mana-val', 'opponent-mana-bar', 'opponent-deck-val',
+                    'turn-indicator', 'end-turn-btn', 'battle-log', 'tooltip', 'game-over-modal', 'modal-title', 'modal-message'
+                ];
+                
+                ids.forEach(id => {
+                    this.elements[id] = document.getElementById(id);
+                    if (!this.elements[id]) console.error(`Missing element: #${id}`);
+                });
+
+                // Bind events
+                if (this.elements['end-turn-btn']) {
+                    this.elements['end-turn-btn'].addEventListener('click', () => this.game.endTurn());
+                }
+            }
+
+            render() {
+                if (!this.game || !this.game.state) return;
+                const state = this.game.state;
+
+                // Update Stats
+                this.updateStat('player', state.player);
+                this.updateStat('opponent', state.opponent);
+                
+                // Update Turn Indicator
+                if (this.elements['turn-indicator']) {
+                    this.elements['turn-indicator'].textContent = state.turn === 'player' ? "Your Turn" : "Opponent's Turn";
+                    this.elements['turn-indicator'].style.color = state.turn === 'player' ? "#ffd700" : "#ff4d4d";
+                }
+
+                // Render Hands
+                this.renderHand(state.player.hand, 'player');
+                this.renderHand(state.opponent.hand, 'opponent');
+
+                // Button State
+                if (this.elements['end-turn-btn']) {
+                    this.elements['end-turn-btn'].disabled = state.turn !== 'player';
+                }
+            }
+
+            updateStat(who, data) {
+                const prefix = who === 'player' ? 'player' : 'opponent';
+                
+                if (this.elements[`${prefix}-hp-val`]) this.elements[`${prefix}-hp-val`.replace('-val','') + '-val'].textContent = data.hp;
+                if (this.elements[`${prefix}-hp-bar`]) this.elements[`${prefix}-hp-bar`].style.width = `${(data.hp / data.maxHp) * 100}%`;
+                
+                if (this.elements[`${prefix}-mana-val`]) this.elements[`${prefix}-mana-val`].textContent = who === 'player' ? `${data.mana}/${data.maxMana}` : data.mana;
+                if (this.elements[`${prefix}-mana-bar`]) this.elements[`${prefix}-mana-bar`].style.width = `${(data.mana / data.maxMana) * 100}%`;
+
+                if (this.elements[`${prefix}-deck-val`]) this.elements[`${prefix}-deck-val`].textContent = data.deck.length;
+            }
+
+            renderHand(hand, who) {
+                const containerId = who === 'player' ? 'player-hand' : 'opponent-hand';
+                const container = this.elements[containerId];
+                if (!container) return;
+
+                container.innerHTML = '';
+
+                hand.forEach((card, index) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `card type-${card.type}`;
+                    
+                    // Check playability for player
+                    let isPlayable = false;
+                    if (who === 'player') {
+                        isPlayable = this.game.state.turn === 'player' && this.game.state.player.mana >= card.cost;
+                        if (isPlayable) cardEl.classList.add('playable');
+                        else cardEl.classList.add('unplayable');
+                        
+                        // Click Event
+                        cardEl.addEventListener('click', () => {
+                            if (isPlayable) this.game.playCard(index);
+                        });
+
+                        // Hover Tooltip
+                        cardEl.addEventListener('mouseenter', (e) => this.showTooltip(e, card));
+                        cardEl.addEventListener('mouseleave', () => this.hideTooltip());
+                    } else {
+                        // Opponent cards are hidden (backside)
+                        cardEl.style.background = '#2c3e50';
+                        cardEl.style.border = '2px solid #444';
+                        cardEl.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#555;font-size:2rem;">🂠</div>`;
+                    }
+
+                    if (who === 'player') {
+                        cardEl.innerHTML = `
+                            <div class="card-cost">${card.cost}</div>
+                            <div class="card-header">${card.name}</div>
+                            <div class="card-image">${this.getCardIcon(card.type)}</div>
+                            <div class="card-stats">
+                                ${card.attack ? `<span class="stat-atk">⚔️${card.attack}</span>` : ''}
+                                ${card.defense ? `<span class="stat-def">🛡️${card.defense}</span>` : ''}
+                                ${card.effect ? `<span style="color:#aaa">${card.effect}</span>` : ''}
+                            </div>
+                            <div class="card-desc">${card.desc}</div>
+                        `;
+                    }
+
+                    container.appendChild(cardEl);
+                });
+            }
+
+            getCardIcon(type) {
+                const icons = { spell: '✨', monster: '👹', item: '🎒', ability: '⚡' };
+                return icons[type] || '❓';
+            }
+
+            showTooltip(e, card) {
+                const tt = this.elements['tooltip'];
+                if (!tt) return;
+                
+                tt.style.display = 'block';
+                tt.style.left = e.pageX + 10 + 'px';
+                tt.style.top = e.pageY + 10 + 'px';
+                tt.innerHTML = `
+                    <strong style="color:var(--highlight)">${card.name}</strong><br>
+                    <span style="color:#aaa">${card.type.toUpperCase()}</span><br>
+                    <hr style="border:0;border-top:1px solid #555;margin:5px 0">
+                    ${card.desc}<br>
+                    <span style="color:var(--mana-color)">Cost: ${card.cost}</span>
+                `;
+            }
+
+            hideTooltip() {
+                const tt = this.elements['tooltip'];
+                if (tt) tt.style.display = 'none';
+            }
+
+            addLog(msg, type) {
+                const logEl = this.elements['battle-log'];
+                if (!logEl) return;
+
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                
+                if (type === 'player') entry.classList.add('log-player');
+                else if (type === 'opponent') entry.classList.add('log-enemy');
+                else entry.classList.add('log-system');
+
+                entry.textContent = `> ${msg}`;
+                logEl.appendChild(entry);
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+
+            showGameOver(playerWon) {
+                const modal = this.elements['game-over-modal'];
+                const title = this.elements['modal-title'];
+                const msg = this.elements['modal-message'];
+                
+                if (modal && title && msg) {
+                    modal.style.display = 'flex';
+                    title.textContent = playerWon ? "VICTORY!" : "DEFEAT";
+                    title.style.color = playerWon ? "#ffd700" : "#ff4d4d";
+                    msg.textContent = playerWon ? "You defeated the dark forces!" : "The darkness has consumed you...";
+                }
+            }
+        }
+
+        // ==========================================
+        // MAIN INITIALIZATION
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("🏰 Initializing Mystic Realms...");
+            
+            try {
+                const state = new GameState();
+                const ui = new UIRenderer(null); // Temp null, will link later
+                const game = new GameEngine(state, ui);
+                
+                // Link UI to Game
+                ui.game = game;
+                
+                // Start
+                game.init();
+                
+                console.log("✅ Game Ready!");
+            } catch (err) {
+                console.error("❌ Critical Error:", err);
+                document.body.innerHTML = `<div style="color:red;padding:20px;font-family:monospace"><h1>Error Loading Game</h1><p>${err.message}</p><pre>${err.stack}</pre></div>`;
+            }
+        });
+    </script>
+</body>
+</html>
