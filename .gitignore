@@ -1,5 +1,1 @@
-# Examples and debug files
-DEBUG_INSTRUCTIONS.md
-debug.html
-debug_console.js
-test_game.html
+Nothing needs to be added to .gitignore since `test_debug.html` is a source file that should be tracked in version control. HTML files are typically part of the project source code and not build artifacts or temporary files.
