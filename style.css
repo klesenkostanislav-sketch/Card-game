@@ -218,6 +218,17 @@ body {
     transform: none;
 }
 
+/* Playable card visual feedback */
+.card.playable {
+    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
+    border-color: #27ae60;
+}
+
+.card.playable:hover {
+    box-shadow: 0 8px 16px rgba(39, 174, 96, 0.6);
+    border-color: #2ecc71;
+}
+
 .card-name {
     font-weight: bold;
     font-size: 0.85rem;
