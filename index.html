@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystic Realms - 1v1 Card Battle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header -->
+        <header id="game-header">
+            <h1>🏰 Mystic Realms</h1>
+            <div id="turn-indicator">
+                <span id="turn-text">Your Turn</span>
+            </div>
+        </header>
+
+        <!-- Opponent Area -->
+        <section id="opponent-area">
+            <div class="player-info">
+                <div class="avatar">🧙‍♂️</div>
+                <div class="stats">
+                    <div class="stat-bar hp-bar">
+                        <span class="label">HP</span>
+                        <div class="bar-container">
+                            <div id="opponent-hp-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="opponent-hp" class="value">20/20</span>
+                    </div>
+                    <div class="stat-bar mana-bar">
+                        <span class="label">Mana</span>
+                        <div class="bar-container">
+                            <div id="opponent-mana-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="opponent-mana" class="value">0/0</span>
+                    </div>
+                    <div class="deck-count">
+                        📚 Deck: <span id="opponent-deck-count">20</span>
+                    </div>
+                    <div class="hand-count">
+                        🎴 Hand: <span id="opponent-hand-count">7</span>
+                    </div>
+                </div>
+            </div>
+            <div id="opponent-hand" class="hand"></div>
+        </section>
+
+        <!-- Battle Area -->
+        <section id="battle-area">
+            <div id="battle-log">
+                <div class="log-entry">Welcome to Mystic Realms!</div>
+            </div>
+        </section>
+
+        <!-- Player Area -->
+        <section id="player-area">
+            <div id="player-hand" class="hand"></div>
+            <div class="player-info">
+                <div class="stats">
+                    <div class="stat-bar hp-bar">
+                        <span class="label">HP</span>
+                        <div class="bar-container">
+                            <div id="player-hp-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="player-hp" class="value">20/20</span>
+                    </div>
+                    <div class="stat-bar mana-bar">
+                        <span class="label">Mana</span>
+                        <div class="bar-container">
+                            <div id="player-mana-bar" class="bar-fill"></div>
+                        </div>
+                        <span id="player-mana" class="value">0/0</span>
+                    </div>
+                    <div class="deck-count">
+                        📚 Deck: <span id="player-deck-count">20</span>
+                    </div>
+                    <div class="hand-count">
+                        🎴 Hand: <span id="player-hand-count">0</span>
+                    </div>
+                </div>
+                <div class="avatar">🦸</div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section id="controls">
+            <button id="end-turn-btn" disabled>End Turn</button>
+        </section>
+
+        <!-- Tooltip -->
+        <div id="tooltip" class="tooltip"></div>
+
+        <!-- Game Over Modal -->
+        <div id="game-over-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="game-over-title">Game Over</h2>
+                <p id="game-over-message"></p>
+                <button id="restart-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
